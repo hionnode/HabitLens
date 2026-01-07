@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { usageStatsService } from '@services/usageStatsService';
+import { usageStatsService } from '@/lib/usageStats';
 
 interface UsePermissionReturn {
   hasPermission: boolean;
@@ -10,10 +10,6 @@ interface UsePermissionReturn {
   requestPermission: () => void;
 }
 
-/**
- * Custom hook for managing usage access permission
- * Automatically checks permission on mount and when app resumes from background
- */
 export function usePermission(): UsePermissionReturn {
   const [hasPermission, setHasPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,8 +23,9 @@ export function usePermission(): UsePermissionReturn {
       setHasPermission(granted);
       return granted;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
-      setError(error);
+      const permissionError =
+        err instanceof Error ? err : new Error('Unknown error');
+      setError(permissionError);
       return false;
     } finally {
       setIsLoading(false);
@@ -39,17 +36,16 @@ export function usePermission(): UsePermissionReturn {
     try {
       usageStatsService.requestPermission();
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
-      setError(error);
+      const requestError =
+        err instanceof Error ? err : new Error('Unknown error');
+      setError(requestError);
     }
   }, []);
 
-  // Check permission on mount
   useEffect(() => {
     checkPermission();
   }, [checkPermission]);
 
-  // Re-check permission when app comes to foreground
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
